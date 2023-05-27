@@ -1,9 +1,13 @@
+
+
 {
-    "version": 2,
-    "name": "social-media",
-    "builds": [
-       { "src": "app.js", "use": "@vercel/node" }
-    ],
-  
-    { "rewrites": [{ "source": "/(.*)", "destination": "/" }] }
- }
+   "version": 2,
+   "name": "music-album",
+   "builds": [
+      { "src": "app.js", "use": "@vercel/node" }
+   ],
+   "routes": [
+      { "src": "/(.*)", "dest": "/app.js" }
+   ],
+        { "rewrites": [{ "source": "/(.*)", "destination": "/" }] }
+}
