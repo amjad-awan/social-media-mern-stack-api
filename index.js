@@ -20,21 +20,17 @@ app.use(bodyParser.json({ limit: "30mb", extended: true }));
 app.use(bodyParser.urlencoded({ limit: "30mb", extended: true }));
 app.use(cors());
 
-const databaseConnection = async () => {
-  try {
-    await mongoose.connect("mongodb://0.0.0.0:27017/SocialMediaApp", {
-      // useNewUlrParser: true,
-      useUnifiedTopology: true,
-      useNewUrlParser: true,
-    });
-    console.log("database is connected")
-  } catch (err) {
-    console.log("database is not connected", err)
+const connectDB= async()=>{
+  try{
+  const conn= await mongoose.connect("mongodb+srv://amjadmalikf53:rAbtP2FDS3PuVGj7@cluster0.kkpnz4e.mongodb.net/social-media-mernstack-app?retryWrites=true&w=majority");
+  
+  console.log(`data base is connected to host ${conn.connection.host}`)
+  }catch(error){
+  console.log(`Error in db ${error}`)
   }
-}
+  }
 
-
-databaseConnection()
+  connectDB();
 app.get("/",(req,res)=>{
   res.setHeader("Access-Control-Allow-Credentials")
 })
