@@ -31,9 +31,9 @@ const connectDB= async()=>{
   }
 
   connectDB();
-// app.get("/",(req,res)=>{
-//   res.setHeader("Access-Control-Allow-Credentials")
-// })
+app.get("/",(req,res)=>{
+res.status(200).send({message:"this api is running"})
+})
 app.use("/auth", AuthRoute);
 app.use("/user", UserRoute);
 app.use("/post", PostRoute);
