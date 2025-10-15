@@ -20,9 +20,10 @@ app.use(bodyParser.json({ limit: "30mb", extended: true }));
 app.use(bodyParser.urlencoded({ limit: "30mb", extended: true }));
 app.use(cors());
 
+
 const connectDB= async()=>{
   try{
-  const conn= await mongoose.connect("mongodb+srv://amjadmalikf53:rAbtP2FDS3PuVGj7@cluster0.kkpnz4e.mongodb.net/social-media-mernstack-app?retryWrites=true&w=majority");
+  const conn= await mongoose.connect(process.env.MONGO_DB);
   
   console.log(`data base is connected to host ${conn.connection.host}`)
   }catch(error){
