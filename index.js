@@ -6,6 +6,8 @@ const AuthRoute = require("./Routes/AuthRoute");
 const UserRoute = require("./Routes/UserRoute");
 const PostRoute = require("./Routes/PostRoute");
 const UploadRoute = require("./Routes/UploadRoute");
+const commentRoute = require("./Routes/commentRoute");
+
 const path = require("path");
 const cors = require("cors");
 require('dotenv').config()
@@ -38,6 +40,8 @@ app.use("/auth", AuthRoute);
 app.use("/user", UserRoute);
 app.use("/post", PostRoute);
 app.use("/", UploadRoute);
+app.use("/comments/post", commentRoute); // ✅ FIXED
+
 app.listen(PORT, () => {
   console.log(`app is running at port ${PORT}`);
 });

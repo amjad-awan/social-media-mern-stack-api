@@ -1,10 +1,11 @@
 const mongoose = require("mongoose");
 
 const postSchema = new mongoose.Schema({
-  userId: {
-    type: String, // sending from frontend as string
-    required: true
-  },
+   userId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Users", // ✅ THIS WAS MISSING
+      required: true,
+    },
   desc: {
     type: String
   },
@@ -15,7 +16,8 @@ const postSchema = new mongoose.Schema({
   imageId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "Image",
-    required: true
+   required: false,  // ✅ make image optional
+
   }
 }, {
   timestamps: true
