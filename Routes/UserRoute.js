@@ -5,13 +5,24 @@ const {
   deleteUser,
   followUser,
   unFollowUser,
-  getAllUser
+  getAllUser,
 } = require("../Controllers/UserController");
 const route = express.Router();
+const multer = require("multer");
+const storage = multer.memoryStorage();
 
-route.get("/", getAllUser)
+const upload = multer({ storage: storage });
+
+route.get("/", getAllUser);
 route.get("/:id", getUser);
-route.put("/:id", updateUser);
+route.put(
+  "/:id",
+  upload.fields([
+    { name: "profilePicture", maxCount: 1 },
+    { name: "coverPicture", maxCount: 1 },
+  ]),
+  updateUser
+);
 route.delete("/:id", deleteUser);
 route.put("/:id/follow", followUser);
 route.put("/:id/unfollow", unFollowUser);

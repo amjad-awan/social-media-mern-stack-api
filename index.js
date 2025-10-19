@@ -37,7 +37,7 @@ res.status(200).send({message:"this api is running"})
 app.use("/auth", AuthRoute);
 app.use("/user", UserRoute);
 app.use("/post", PostRoute);
-app.use("/upload", UploadRoute);
+app.use("/", UploadRoute);
 app.listen(PORT, () => {
   console.log(`app is running at port ${PORT}`);
 });
