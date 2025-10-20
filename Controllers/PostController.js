@@ -2,10 +2,12 @@ const { default: mongoose } = require("mongoose");
 const PostModel = require("../Modals/postModel");
 const CommentModel = require("../Modals/comment"); // ✅ import comments
 
+const Notification = require("../Modals/notification");
 // create new post
 
 const Image = require("../Modals/image");
 const UserModel = require("../Modals/userModel");
+const { sendNotification } = require("../services/notificationService");
 
 const createPost = async (req, res) => {
   try {
@@ -130,24 +132,50 @@ const deletePost = async (req, res) => {
 };
 
 
-// like/dislike post
+
 const likePost = async (req, res) => {
-  const id = req.params.id;
+  const postId = req.params.id;
   const { userId } = req.body;
+
   try {
-    const post = await PostModel.findById(id);
-    if (!post.likes.includes(userId)) {
+    const post = await PostModel.findById(postId);
+
+    if (!post) {
+      return res.status(404).json({ message: "Post not found" });
+    }
+
+    const alreadyLiked = post.likes.includes(userId);
+
+    if (!alreadyLiked) {
+      // Add userId to likes array
       await post.updateOne({ $push: { likes: userId } });
-      res.status(200).json("Post Liked");
+
+      // Notify post owner if liker is not the owner
+      if (post.userId.toString() !== userId) {
+        await sendNotification({
+          userId: post.userId,      // recipient
+          senderId: userId,         // who liked
+          postId: post._id,
+          type: "like",
+          message: "liked your post",
+          app: req.app,
+        });
+      }
+
+      res.status(200).json({ success: true, message: "Post Liked" });
     } else {
-      // res.status(403).json("Action forbidden")
+      // Remove userId from likes array (unlike)
       await post.updateOne({ $pull: { likes: userId } });
-      res.status(200).json("Post Unliked");
+      res.status(200).json({ success: true, message: "Post Unliked" });
     }
   } catch (err) {
-    res.status(500).json(err);
+    console.error("Like Post Error:", err);
+    res.status(500).json({ success: false, message: "Failed to like/unlike post", error: err.message });
   }
 };
+
+
+
 
 //Get timeline post
 const getTimeLinePost = async (req, res) => {

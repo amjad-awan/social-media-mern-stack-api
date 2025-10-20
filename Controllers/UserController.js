@@ -3,6 +3,10 @@ const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const image = require("../Modals/image");
 
+const Notification = require("../Modals/notification");
+const { sendNotification } = require("../services/notificationService");
+const UserModel = require("../Modals/userModel");
+
 // GET all users
 const getAllUser = async (req, res) => {
   try {
@@ -105,46 +109,101 @@ const deleteUser = async (req, res) => {
 };
 
 // follow a user
+
+
 const followUser = async (req, res) => {
-  const id = req.params.id;
-  const { _id } = req.body;
+  const id = req.params.id;  // user to follow
+  const { _id } = req.body;  // logged-in user
+
   if (_id === id) {
-    res.status(403).json("Action forbidden");
+    return res.status(403).json({ success: false, message: "Action forbidden" });
   }
+
   try {
-    const followUser = await UserModal.findById(id);
-    const followingUser = await UserModal.findById(_id);
-    if (!followUser.followers.includes(_id)) {
-      await followUser.updateOne({ $push: { followers: _id } });
-      await followingUser.updateOne({ $push: { following: id } });
-      await res.status(200).json("User followed!");
+    const followUserDoc = await UserModal.findById(id);
+    const followingUserDoc = await UserModal.findById(_id);
+
+    if (!followUserDoc.followers.includes(_id)) {
+      await followUserDoc.updateOne({ $push: { followers: _id } });
+      await followingUserDoc.updateOne({ $push: { following: id } });
+
+      // Create follow notification via service
+      await sendNotification({
+        userId: id,         // recipient
+        senderId: _id,      // who followed
+        type: "follow",
+        message: "started following you",
+        app: req.app,
+      });
+
+      return res.status(200).json({ success: true, message: "User followed!" });
     } else {
-      res.status(403).json("User is already followed by you ");
+      return res.status(403).json({ success: false, message: "User is already followed by you" });
     }
   } catch (err) {
-    res.status(500).json(err);
+    console.error("Follow Error:", err);
+    return res.status(500).json({ success: false, message: "Failed to follow user", error: err.message });
   }
 };
 
-// unFollowUser a user
+// Unfollow a user
 const unFollowUser = async (req, res) => {
   const id = req.params.id;
   const { _id } = req.body;
+
   if (_id === id) {
-    res.status(403).json("Action forbidden")
+    return res.status(403).json({ success: false, message: "Action forbidden" });
   }
+
   try {
-    const followUser = await UserModal.findById(id);
-    const followingUser = await UserModal.findById(_id);
-    if (followUser.followers.includes(_id)) {
-      await followUser.updateOne({ $pull: { followers: _id } });
-      await followingUser.updateOne({ $pull: { following: id } });
-      await res.status(200).json("User Unfollowed!");
+    const followUserDoc = await UserModal.findById(id);
+    const followingUserDoc = await UserModal.findById(_id);
+
+    if (followUserDoc.followers.includes(_id)) {
+      await followUserDoc.updateOne({ $pull: { followers: _id } });
+      await followingUserDoc.updateOne({ $pull: { following: id } });
+
+      // ✅ No notification for unfollow
+      return res.status(200).json({ success: true, message: "User unfollowed!" });
     } else {
-      res.status(403).json("User is not followed by you ");
+      return res.status(403).json({ success: false, message: "User is not followed by you" });
     }
   } catch (err) {
-    res.status(500).json(err);
+    console.error("Unfollow Error:", err);
+    return res.status(500).json({ success: false, message: "Failed to unfollow user", error: err.message });
   }
 };
-module.exports = { getUser, updateUser, deleteUser, followUser, unFollowUser, getAllUser };
+
+
+
+
+
+
+// GET followers and following for a user
+const followersFollowings = async (req, res) => {
+  try {
+    const userId = req.params.userId;
+
+    const user = await UserModel.findById(userId)
+      .select("followers following")
+      .populate("followers", "_id username profilePictureId firstname lastname")
+      .populate("following", "_id username profilePictureId firstname lastname");
+
+    if (!user) return res.status(404).json({ message: "User not found" });
+
+    // Merge followers and following, remove duplicates
+    const contactsMap = {};
+    user.followers.forEach((u) => (contactsMap[u._id] = u));
+    user.following.forEach((u) => (contactsMap[u._id] = u));
+    const contacts = Object.values(contactsMap);
+
+    res.status(200).json({ contacts });
+  } catch (err) {
+    console.error("Fetch contacts error:", err);
+    res.status(500).json({ message: "Failed to fetch contacts", error: err.message });
+  }
+};
+
+
+
+module.exports = {followersFollowings, getUser, updateUser, deleteUser, followUser, unFollowUser, getAllUser };

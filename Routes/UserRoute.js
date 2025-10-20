@@ -6,6 +6,7 @@ const {
   followUser,
   unFollowUser,
   getAllUser,
+  followersFollowings,
 } = require("../Controllers/UserController");
 const route = express.Router();
 const multer = require("multer");
@@ -26,5 +27,7 @@ route.put(
 route.delete("/:id", deleteUser);
 route.put("/:id/follow", followUser);
 route.put("/:id/unfollow", unFollowUser);
+route.get("/contacts/:userId", followersFollowings);
+
 
 module.exports = route;

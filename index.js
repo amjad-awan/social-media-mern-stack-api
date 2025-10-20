@@ -1,47 +1,61 @@
 const express = require("express");
 const app = express();
-const mongoose = require("mongoose");
 const bodyParser = require("body-parser");
+const cors = require("cors");
+require("dotenv").config();
+const http = require("http");
+
+// Routes
 const AuthRoute = require("./Routes/AuthRoute");
 const UserRoute = require("./Routes/UserRoute");
 const PostRoute = require("./Routes/PostRoute");
 const UploadRoute = require("./Routes/UploadRoute");
 const commentRoute = require("./Routes/commentRoute");
+const notificationRoute = require("./Routes/notificationRoutes");
+const chatRoute = require("./Routes/chatRoutes");
+const messageRoute = require("./Routes/messageRoutes");
 
-const path = require("path");
-const cors = require("cors");
-require('dotenv').config()
 
-const PORT = 8080
+const connectDB = require("./DB/db");
+const setupSocket = require("./Socket/socket");
 
-//to save images for public
-app.use(express.static("public"))
+// Modules
+
+const PORT = process.env.PORT || 8080;
+
+// ---------------- Middleware ----------------
+app.use(express.static("public"));
 app.use("/images", express.static("images"));
-///middleware
 app.use(bodyParser.json({ limit: "30mb", extended: true }));
 app.use(bodyParser.urlencoded({ limit: "30mb", extended: true }));
-app.use(cors());
+app.use(
+  cors()
+);
 
-const connectDB= async()=>{
-  try{
-  const conn= await mongoose.connect(process.env.MONGO_DB);
-  
-  console.log(`data base is connected to host ${conn.connection.host}`)
-  }catch(error){
-  console.log(`Error in db ${error}`)
-  }
-  }
+// ---------------- MongoDB Connection ----------------
+connectDB();
 
-  connectDB();
-app.get("/",(req,res)=>{
-res.status(200).send({message:"this api is running"})
-})
+// ---------------- Routes ----------------
+app.get("/", (req, res) => {
+  res.status(200).send({ message: "API is running" });
+});
 app.use("/auth", AuthRoute);
 app.use("/user", UserRoute);
 app.use("/post", PostRoute);
 app.use("/", UploadRoute);
-app.use("/comments/post", commentRoute); // ✅ FIXED
+app.use("/comments/post", commentRoute);
+app.use("/notifications", notificationRoute);
+app.use("/chat", chatRoute);
+app.use("/message", messageRoute);
 
-app.listen(PORT, () => {
-  console.log(`app is running at port ${PORT}`);
+
+// ---------------- HTTP Server ----------------
+const server = http.createServer(app);
+
+// ---------------- Socket.IO ----------------
+setupSocket(server, app);
+
+// ---------------- Start Server ----------------
+server.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
 });

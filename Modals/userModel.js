@@ -12,8 +12,10 @@ const userSchema = new mongoose.Schema({
   worksAt: String,
   country: String,
   relationship: String,
-  followers: [],
-  following: []
+  followers: [{ type: mongoose.Schema.Types.ObjectId, ref: "Users" }],
+  following: [{ type: mongoose.Schema.Types.ObjectId, ref: "Users" }],
+  lastSeen: { type: Date, default: null },
+isOnline: { type: Boolean, default: false },
 }, { timestamps: true });
 
 const UserModel = mongoose.model("Users", userSchema);
