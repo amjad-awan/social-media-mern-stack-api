@@ -33,7 +33,6 @@ app.use(
 );
 // ---------------- MongoDB Connection ----------------
 connectDB();
-
 // ---------------- Routes ----------------
 app.get("/", (req, res) => {
   res.status(200).send({ message: "API is running" });

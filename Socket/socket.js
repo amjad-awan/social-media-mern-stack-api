@@ -1,5 +1,6 @@
 const { Server } = require("socket.io");
 const UserModel = require("../Modals/userModel"); // ⬅️ Import User model
+const { sendMessageSocket } = require("../services/messageService");
 
 const setupSocket = (server, app) => {
   const io = new Server(server, {
@@ -9,11 +10,11 @@ const setupSocket = (server, app) => {
   const onlineUsers = new Map();
 
   io.on("connection", (socket) => {
-    console.log("✅ Socket connected:", socket.id);
 
     // User joins with their userId
     socket.on("join", async (userId) => {
       if (!userId) return;
+    // console.log("userId========", userId);
 
       onlineUsers.set(userId, socket.id);
       socket.join(userId);

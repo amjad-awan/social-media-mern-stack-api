@@ -45,4 +45,20 @@ const getUserChats = async (req, res) => {
   }
 };
 
-module.exports = { createChat, getUserChats };
+const markAsRead = async (req, res) => {
+  const { chatId, userId } = req.body;
+
+  try {
+    const chat = await ChatModel.findById(chatId);
+    chat.unReadCount.set(userId, 0);
+    await chat.save();
+
+    res.status(200).json({ success: true });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+};
+
+
+
+module.exports = {markAsRead, createChat, getUserChats };

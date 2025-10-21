@@ -3,25 +3,34 @@ const ChatModel = require("../Modals/chatModel");
 
 const sendMessageSocket = async ({ chatId, senderId, text, app }) => {
   try {
-    // 1️⃣ Save message to DB
+    // 1️⃣ Save message
     const newMessage = await MessageModel.create({ chatId, senderId, text });
 
-    // 2️⃣ Update Chat lastMessage
-    await ChatModel.findByIdAndUpdate(chatId, {
-      lastMessage: text,
-      updatedAt: Date.now()
+    // 2️⃣ Update Chat lastMessage + unread count
+    const chat = await ChatModel.findById(chatId);
+
+    chat.lastMessage = text;
+    chat.updatedAt = Date.now();
+
+    // ✅ Increase unread for other members
+    chat.members.forEach((memberId) => {
+      const id = memberId.toString();
+      if (id !== senderId) {
+        const current = chat.unReadCount.get(id) || 0;
+        chat.unReadCount.set(id, current + 1);
+      }
     });
 
-    // 3️⃣ Populate message for frontend UI
+    await chat.save();
+
+    // 3️⃣ Populate message
     const populatedMessage = await MessageModel.findById(newMessage._id)
       .populate("senderId", "_id firstname lastname username profilePictureId");
 
-    // 4️⃣ Emit to all online chat members
+    // 4️⃣ Emit real-time
     if (app) {
       const io = app.get("io");
       const onlineUsers = app.get("onlineUsers");
-
-      const chat = await ChatModel.findById(chatId).select("members");
 
       chat.members.forEach((memberId) => {
         const socketId = onlineUsers.get(memberId.toString());
