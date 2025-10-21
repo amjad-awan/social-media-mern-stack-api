@@ -40,7 +40,7 @@ const getUser = async (req, res) => {
 // UPDATE user (with optional profilePicture & coverPicture)
 const updateUser = async (req, res) => {
   const id = req.params.id;
-  const { _id, password } = req.body;
+  const { _id, password, followers, following } = req.body;
 
   try {
     if (id !== _id) {
@@ -55,25 +55,38 @@ const updateUser = async (req, res) => {
       req.body.password = await bcrypt.hash(password, salt);
     }
 
-   if (req.files?.profilePicture?.length) {
-  const profileImg = req.files.profilePicture[0];
-  const base64Image = profileImg.buffer.toString("base64");
-  const savedImage = await image.create({
-    data: base64Image,
-    contentType: profileImg.mimetype,
-  });
-  req.body.profilePictureId = savedImage._id;
-}
+    // Handle profile & cover images
+    if (req.files?.profilePicture?.length) {
+      const profileImg = req.files.profilePicture[0];
+      const base64Image = profileImg.buffer.toString("base64");
+      const savedImage = await image.create({
+        data: base64Image,
+        contentType: profileImg.mimetype,
+      });
+      req.body.profilePictureId = savedImage._id;
+    }
 
-if (req.files?.coverPicture?.length) {
-  const coverImg = req.files.coverPicture[0];
-  const base64Image = coverImg.buffer.toString("base64");
-  const savedImage = await image.create({
-    data: base64Image,
-    contentType: coverImg.mimetype,
-  });
-  req.body.coverPictureId = savedImage._id;
-}
+    if (req.files?.coverPicture?.length) {
+      const coverImg = req.files.coverPicture[0];
+      const base64Image = coverImg.buffer.toString("base64");
+      const savedImage = await image.create({
+        data: base64Image,
+        contentType: coverImg.mimetype,
+      });
+      req.body.coverPictureId = savedImage._id;
+    }
+
+    // ✅ Filter invalid ObjectIds for followers/following
+    if (followers) {
+      req.body.followers = followers.filter(
+        (id) => id && mongoose.Types.ObjectId.isValid(id)
+      );
+    }
+    if (following) {
+      req.body.following = following.filter(
+        (id) => id && mongoose.Types.ObjectId.isValid(id)
+      );
+    }
 
     // Update user
     const user = await UserModal.findByIdAndUpdate(id, req.body, { new: true });
@@ -91,6 +104,7 @@ if (req.files?.coverPicture?.length) {
     res.status(500).json(err);
   }
 };
+
 
 // DELETE user
 const deleteUser = async (req, res) => {
