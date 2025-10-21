@@ -38,9 +38,12 @@ const getUser = async (req, res) => {
 };
 
 // UPDATE user (with optional profilePicture & coverPicture)
+
+
+
 const updateUser = async (req, res) => {
   const id = req.params.id;
-  const { _id, password, followers, following } = req.body;
+  const { _id, password, followers, following, lastSeen, isOnline } = req.body;
 
   try {
     // 1️⃣ Permission check
@@ -77,38 +80,48 @@ const updateUser = async (req, res) => {
       req.body.coverPictureId = savedImage._id;
     }
 
-    // 4️⃣ Parse and filter followers/following
-    if (followers) {
-      let followersArray = followers;
-      if (typeof followers === "string") {
-        followersArray = followers.split(","); // comma-separated string → array
+    // 4️⃣ Parse & sanitize followers/following
+    const parseIds = (ids) => {
+      if (!ids) return [];
+      let arr = [];
+
+      if (Array.isArray(ids)) arr = ids;
+      else if (typeof ids === "string") {
+        // Remove brackets/quotes
+        const cleaned = ids.replace(/[\[\]\s'"]/g, "");
+        arr = cleaned.length ? cleaned.split(",") : [];
       }
-      req.body.followers = Array.isArray(followersArray)
-        ? followersArray.filter((id) => id && mongoose.Types.ObjectId.isValid(id))
-        : [];
+
+      return arr.filter((id) => id && mongoose.Types.ObjectId.isValid(id));
+    };
+
+    req.body.followers = parseIds(followers);
+    req.body.following = parseIds(following);
+
+    // 5️⃣ Sanitize lastSeen (convert "null" string to null)
+    if (lastSeen === "null" || lastSeen === "") {
+      req.body.lastSeen = null;
+    } else if (lastSeen) {
+      const date = new Date(lastSeen);
+      req.body.lastSeen = isNaN(date.getTime()) ? null : date;
     }
 
-    if (following) {
-      let followingArray = following;
-      if (typeof following === "string") {
-        followingArray = following.split(",");
-      }
-      req.body.following = Array.isArray(followingArray)
-        ? followingArray.filter((id) => id && mongoose.Types.ObjectId.isValid(id))
-        : [];
+    // 6️⃣ Sanitize isOnline
+    if (typeof isOnline === "string") {
+      req.body.isOnline = isOnline === "true";
     }
 
-    // 5️⃣ Update user in DB
+    // 7️⃣ Update user
     const user = await UserModal.findByIdAndUpdate(id, req.body, { new: true });
 
-    // 6️⃣ Generate new token
+    // 8️⃣ Generate token
     const token = jwt.sign(
       { username: user.username, id: user._id },
       "MERN",
       { expiresIn: "1h" }
     );
 
-    // 7️⃣ Exclude password from response
+    // 9️⃣ Exclude password from response
     const { password: pwd, ...otherDetails } = user._doc;
 
     res.status(200).json({ user: otherDetails, token });
@@ -117,6 +130,8 @@ const updateUser = async (req, res) => {
     res.status(500).json({ message: "Failed to update user", error: err.message });
   }
 };
+
+module.exports = updateUser;
 
 
 // DELETE user
