@@ -2,11 +2,11 @@ const UserModal = require("../Modals/userModel");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const image = require("../Modals/image");
+const mongoose = require("mongoose");
 
 const Notification = require("../Modals/notification");
 const { sendNotification } = require("../services/notificationService");
 const UserModel = require("../Modals/userModel");
-
 // GET all users
 const getAllUser = async (req, res) => {
   try {
@@ -43,19 +43,20 @@ const updateUser = async (req, res) => {
   const { _id, password, followers, following } = req.body;
 
   try {
+    // 1️⃣ Permission check
     if (id !== _id) {
       return res
         .status(403)
         .json("Permission Denied! You can only update your own profile");
     }
 
-    // Hash password if provided
+    // 2️⃣ Hash password if provided
     if (password) {
       const salt = await bcrypt.genSalt(10);
       req.body.password = await bcrypt.hash(password, salt);
     }
 
-    // Handle profile & cover images
+    // 3️⃣ Handle profile & cover images
     if (req.files?.profilePicture?.length) {
       const profileImg = req.files.profilePicture[0];
       const base64Image = profileImg.buffer.toString("base64");
@@ -76,32 +77,44 @@ const updateUser = async (req, res) => {
       req.body.coverPictureId = savedImage._id;
     }
 
-    // ✅ Filter invalid ObjectIds for followers/following
+    // 4️⃣ Parse and filter followers/following
     if (followers) {
-      req.body.followers = followers.filter(
-        (id) => id && mongoose.Types.ObjectId.isValid(id)
-      );
-    }
-    if (following) {
-      req.body.following = following.filter(
-        (id) => id && mongoose.Types.ObjectId.isValid(id)
-      );
+      let followersArray = followers;
+      if (typeof followers === "string") {
+        followersArray = followers.split(","); // comma-separated string → array
+      }
+      req.body.followers = Array.isArray(followersArray)
+        ? followersArray.filter((id) => id && mongoose.Types.ObjectId.isValid(id))
+        : [];
     }
 
-    // Update user
+    if (following) {
+      let followingArray = following;
+      if (typeof following === "string") {
+        followingArray = following.split(",");
+      }
+      req.body.following = Array.isArray(followingArray)
+        ? followingArray.filter((id) => id && mongoose.Types.ObjectId.isValid(id))
+        : [];
+    }
+
+    // 5️⃣ Update user in DB
     const user = await UserModal.findByIdAndUpdate(id, req.body, { new: true });
 
+    // 6️⃣ Generate new token
     const token = jwt.sign(
       { username: user.username, id: user._id },
       "MERN",
       { expiresIn: "1h" }
     );
 
+    // 7️⃣ Exclude password from response
     const { password: pwd, ...otherDetails } = user._doc;
 
     res.status(200).json({ user: otherDetails, token });
   } catch (err) {
-    res.status(500).json(err);
+    console.error("Update User Error:", err);
+    res.status(500).json({ message: "Failed to update user", error: err.message });
   }
 };
 
