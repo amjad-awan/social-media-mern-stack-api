@@ -16,6 +16,8 @@ const userSchema = new mongoose.Schema({
   following: [{ type: mongoose.Schema.Types.ObjectId, ref: "Users" }],
   lastSeen: { type: Date, default: null },
 isOnline: { type: Boolean, default: false },
+resetToken: { type: String },
+resetTokenExpiry: { type: Date },
 }, { timestamps: true });
 
 const UserModel = mongoose.model("Users", userSchema);
